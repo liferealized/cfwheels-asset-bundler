@@ -116,11 +116,19 @@
 			var originalJavaScriptIncludeTag = core.javaScriptIncludeTag;
 			
 			if (not ListFindNoCase("production,testing", application.wheels.environment)) {
+			
+				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="js"))
+					arguments.sources = application.assetBundler.js[arguments.bundle].sources;
+				
 				StructDelete(arguments, "bundle");
 				return originalJavaScriptIncludeTag(argumentCollection=arguments);
 			}
 			
 			if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type="js")) {
+			
+				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="js"))
+					arguments.sources = application.assetBundler.js[arguments.bundle].sources;
+				
 				StructDelete(arguments, "bundle");
 				return originalJavaScriptIncludeTag(argumentCollection=arguments);
 			}
