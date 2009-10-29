@@ -1,146 +1,161 @@
 <cfcomponent output="false">
 
-	<cffunction name="init" access="public">
-		<cfset this.version = "0.9.4">
+	<cffunction name="init" access="public" output="false">
+		<cfset this.version = "1.0">
 		<cfreturn this />
 	</cffunction>
 	
-	<cffunction name="styleSheetLinkTag" access="public">	
-		<cfargument name="sources" type="string" required="true" />
-		<cfargument name="bundle" type="string" required="true" />
+	<cffunction name="generateBundle" access="public" returntype="void" mixin="application">
+		<cfargument name="type" type="string" required="true" hint="Can be either `js` or `css`" />
+		<cfargument name="sources" type="string" required="false" default="" />
+		<cfargument name="bundle" type="string" required="false" default="" />
 		<cfargument name="compress" type="boolean" required="false" default="false" />
-		<cfargument name="type" type="string" required="false" default="#application.wheels.styleSheetLinkTag.type#" />
-		<cfargument name="media" type="string" required="false" default="#application.wheels.styleSheetLinkTag.media#" />
 		<cfscript>
-			var loc = {};
-			loc.css = ".css";
-			loc.reload = false;
-			loc.delimiter = ",";
-			loc.bundleInfo = {};
-			loc.relativeFolderPath = application.wheels.webPath & application.wheels.stylesheetpath & "/";
+		
+			// this method is used in /events/onApplicationStart.cfm to create the bundles necessary for the application to run
+			// this is done on application start so we don't kill an individuals request performance
+			// also allows bundling to work accross a server cluster
+		
+			var loc = {
+				  extension = "." & arguments.type
+				, relativeFolderPath = application.wheels.webPath & application.wheels.stylesheetPath & "/"
+				, bundleInfo = {}
+				, bundleContents = ""
+			};
 			
-			if (application.wheels.environment != "production" and application.wheels.environment != "testing")
-				return core.styleSheetLinkTag(arguments.sources, arguments.sources, arguments.type, arguments.media);
+			if (StructKeyExists(arguments, "source"))
+				arguments.sources = arguments.source;
 			
-			loc.reload = $checkReload();
-			
-			// setup our variables
-			loc.bundleFilePath = ExpandPath(loc.relativeFolderPath & arguments.bundle & loc.css); 
-			
-			if (loc.reload == false and FileExists(loc.bundleFilepath))
-				return core.styleSheetLinkTag(arguments.bundle, arguments.bundle, arguments.type, arguments.media);
-				
-			// if we have made it this far, create the bundled file
-			loc.bundleContents = $getFileContents(arguments.sources, loc.relativeFolderPath, loc.css, loc.delimiter);
-			
-			// add it to the application scope with proper values
-			if (not StructKeyExists(application, "assetBundler")) {
+			// create our application scope structs if they do not exist
+			if (not StructKeyExists(application, "assetBundler"))
 				application.assetBundler = {};
-			}
 			
-			if (not StructKeyExists(application.assetBundler, "cssBundles")) {
-				application.assetBundler.cssBundles = {};
-			}
-			
-			loc.bundleInfo.md5hash = Hash(loc.bundleContents);
+			if (not StructKeyExists(application.assetBundler, arguments.type))
+				application.assetBundler[arguments.type] = {};
+				
 			loc.bundleInfo.name = arguments.bundle;
-			loc.bundleInfo.createdAt = Now();
+			loc.bundleInfo.sources = arguments.sources;
+				
+			// if we are not in testing or production, do nothing
+			if (not ListFindNoCase("production,testing", application.wheels.environment)) {
 			
-			application.assetBundler.cssBundles[arguments.bundle] = StructCopy(loc.bundleInfo);
+				application.assetBundler[arguments.type][arguments.bundle] = StructCopy(loc.bundleInfo);
+				return;
+			}
+			
+			// make sure we have the right root path
+			if (arguments.type eq "js")
+				loc.relativeFolderPath = application.wheels.webPath & application.wheels.javascriptPath & "/";
+				
+			loc.bundleFilePath = ExpandPath(loc.relativeFolderPath & arguments.bundle & loc.extension);
+			
+			// conbine all of the files listed as one file
+			loc.bundleContents = $getFileContents(arguments.sources, loc.relativeFolderPath, loc.extension);
 			
 			// check to see if we should compress the contents
-			if (compress) 
-				loc.bundleContents = $compressContents(loc.bundleContents, "css");
+			if (arguments.compress) 
+				loc.bundleContents = $compressContents(loc.bundleContents, arguments.type);
 			
-			$writeFile(loc.bundleFilePath, loc.bundleContents);
-			
-			// return an styleSheetLinkTag to the bundle
-			return core.styleSheetLinkTag(arguments.bundle, arguments.bundle, arguments.type, arguments.media);
-		</cfscript>
-	</cffunction>
-	
-	
-	<cffunction name="javaScriptIncludeTag" access="public">
-		<cfargument name="sources" type="string" required="true" />
-		<cfargument name="bundle" type="string" required="true" />
-		<cfargument name="compress" type="boolean" required="false" default="false" />
-		<cfargument name="type" type="string" required="false" default="#application.wheels.javaScriptIncludeTag.type#" />
-		<cfscript>
-			var loc = {};
-			loc.js = ".js";
-			loc.reload = false;
-			loc.delimiter = ",";
-			loc.bundleInfo = {};
-			loc.relativeFolderPath = application.wheels.webPath & application.wheels.javaScriptPath & "/";
-			
-			if (application.wheels.environment != "production" and application.wheels.environment != "testing") {
-				return core.javaScriptIncludeTag(arguments.sources, arguments.sources, arguments.type);
-			}
-			
-			loc.reload = $checkReload();
-			
-			// setup our variables
-			loc.bundleFilePath = ExpandPath(loc.relativeFolderPath & arguments.bundle & loc.js); 
-			
-			if (loc.reload == false and FileExists(loc.bundleFilepath))
-				return core.javaScriptIncludeTag(arguments.bundle, arguments.bundle, arguments.type);
-				
-			// if we have made it this far, create the bundled file
-			loc.iEnd = ListLen(arguments.sources, loc.delimiter);
-			
-			loc.bundleContents = $getFileContents(arguments.sources, loc.relativeFolderPath, loc.js, loc.delimiter);
-			
-			// add it to the application scope with proper values
-			if (not StructKeyExists(application, "assetBundler")) {
-				application.assetBundler = {};
-			}
-			
-			if (not StructKeyExists(application.assetBundler, "jsBundles")) {
-				application.assetBundler.jsBundles = {};
-			}
-			
+			// store info about our bundle in the application scope
 			loc.bundleInfo.md5hash = Hash(loc.bundleContents);
-			loc.bundleInfo.name = arguments.bundle;
 			loc.bundleInfo.createdAt = Now();
 			
-			application.assetBundler.jsBundles[arguments.bundle] = StructCopy(loc.bundleInfo);
+			application.assetBundler[arguments.type][arguments.bundle] = StructCopy(loc.bundleInfo);
 			
-			if (compress) 
-				loc.bundleContents = $compressContents(loc.bundleContents, "js");
-			
-			$writeFile(loc.bundleFilePath, loc.bundleContents);
-			
-			// return an styleSheetLinkTag to the bundle
-			return core.javaScriptIncludeTag(arguments.bundle, arguments.bundle, arguments.type);
-		
-		</cfscript>
-	</cffunction>
-	
-	<cffunction name="$checkReload">
-		<cfscript>
-			var loc = {};
-			loc.reload = false;
-		
-			if (StructKeyExists(params, "reload")) {
-				loc.reload = true;
-				
-				if (not StructKeyExists(request, "reload")) {
-					request.reload = true;
-				}
-							
-				if (request.reload) {
-					application.assetBundler = {};
-					request.reload = false;
-				}
+			if (Find("/", arguments.bundle)) {
+				loc.directory = ListDeleteAt(arguments.bundle, ListLen(arguments.bundle, "/"), "/");
+				if (not DirectoryExists(ExpandPath(loc.relativeFolderPath & loc.directory & "/")))
+					$directory(action="create", directory=ExpandPath(loc.relativeFolderPath & loc.directory & "/"));
 			}
 			
-			return loc.reload;
+			$file(action="write", file=loc.bundleFilePath, output=loc.bundleContents, mode="644");
 		</cfscript>
+		<cfreturn />
 	</cffunction>
 	
-	<cffunction name="$compressContents">
+	<cffunction name="styleSheetLinkTag" access="public" output="false" returntype="string" mixin="controller">	
+		<cfargument name="sources" type="string" required="false" default="" />
+		<cfargument name="type" type="string" required="false" default="#application.wheels.functions.styleSheetLinkTag.type#" />
+		<cfargument name="media" type="string" required="false" default="#application.wheels.functions.styleSheetLinkTag.media#" />
+		<cfargument name="bundle" type="string" required="false" default="" />
+		<cfscript>
+			var originalStyleSheetLinkTag = core.styleSheetLinkTag;
+			
+			if (not ListFindNoCase("production,testing", application.wheels.environment)) {
+			
+				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="css"))
+					arguments.sources = application.assetBundler.css[arguments.bundle].sources;
+				
+				StructDelete(arguments, "bundle");
+				return originalStyleSheetLinkTag(argumentCollection=arguments);
+			}
+			
+			if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type="css")) {
+			
+				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="css"))
+					arguments.sources = application.assetBundler.css[arguments.bundle].sources;
+					
+				StructDelete(arguments, "bundle");
+				return originalStyleSheetLinkTag(argumentCollection=arguments);
+			}
+			
+			arguments.sources = arguments.bundle;
+			
+			StructDelete(arguments, "bundle");
+			StructDelete(arguments, "source");
+		</cfscript>
+		<cfreturn originalStyleSheetLinkTag(argumentCollection=arguments) />
+	</cffunction>
+	
+	
+	<cffunction name="javaScriptIncludeTag" access="public" output="false" returntype="string" mixin="controller">
+		<cfargument name="sources" type="string" required="false" default="" />
+		<cfargument name="type" type="string" required="false" default="#application.wheels.functions.javaScriptIncludeTag.type#" />
+		<cfargument name="bundle" type="string" required="false" default="" />
+		<cfscript>
+			var originalJavaScriptIncludeTag = core.javaScriptIncludeTag;
+			
+			if (not ListFindNoCase("production,testing", application.wheels.environment)) {
+				StructDelete(arguments, "bundle");
+				return originalJavaScriptIncludeTag(argumentCollection=arguments);
+			}
+			
+			if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type="js")) {
+				StructDelete(arguments, "bundle");
+				return originalJavaScriptIncludeTag(argumentCollection=arguments);
+			}
+			
+			arguments.sources = arguments.bundle;
+			
+			StructDelete(arguments, "bundle");
+			StructDelete(arguments, "source");
+		</cfscript>
+		<cfreturn originalJavaScriptIncludeTag(argumentCollection=arguments) />
+	</cffunction>
+	
+	<cffunction name="$bundleExists" output="false" returntype="boolean" access="public" mixin="controller">
+		<cfargument name="bundle" required="true" type="string" />
+		<cfargument name="type" required="true" type="string" hint="can be `js` or 	`css`" />
+		<cfscript>
+			var returnValue = false;
+			
+			if (not StructKeyExists(application, "assetBundler"))
+				return returnValue;
+				
+			if (not StructKeyExists(application.assetBundler, arguments.type))
+				return returnValue;
+				
+			if (not StructKeyExists(application.assetBundler[arguments.type], arguments.bundle))
+				return returnValue;
+				
+			returnValue = true;
+		</cfscript>
+		<cfreturn returnValue />
+	</cffunction>
+	
+	<cffunction name="$compressContents" access="public" output="false" returntype="string" mixin="application">
 		<cfargument name="fileContents" type="string" required="true" />
-		<cfargument name="fileType" type="string" required="true" />
+		<cfargument name="type" type="string" required="true" />
 		<cfscript>
 			var loc = {};
 			
@@ -149,12 +164,12 @@
 			loc.stringReader = createObject("java","java.io.StringReader").init(arguments.fileContents);
 			loc.stringWriter = createObject("java","java.io.StringWriter").init();
 			
-			if (LCase(arguments.fileType) == "css")
+			if (LCase(arguments.type) == "css")
 			{
 				loc.yuiCompressor = loc.javaLoader.create("com.yahoo.platform.yui.compressor.CssCompressor").init(loc.stringReader);
 				loc.yuiCompressor.compress(loc.stringWriter, JavaCast("int", -1));
 			}
-			else if (LCase(arguments.fileType) == "js")
+			else if (LCase(arguments.type) == "js")
 			{
 				loc.errorReporter = loc.javaLoader.create("org.mozilla.javascript.tools.ToolErrorReporter").init(JavaCast("boolean", false));
 				loc.yuiCompressor = loc.javaLoader.create("com.yahoo.platform.yui.compressor.JavaScriptCompressor").init(loc.stringReader, loc.errorReporter);
@@ -173,7 +188,7 @@
 		</cfscript>
 	</cffunction>
 
-	<cffunction name="$createJavaLoader">
+	<cffunction name="$createJavaLoader" access="public" output="false" returntype="any" mixin="application">
 		<cfscript>
 			if (StructKeyExists(request, "javaLoader"))
 				return request.javaLoader;
@@ -191,11 +206,11 @@
 		</cfscript>
 	</cffunction>
 	
-	<cffunction name="$getFileContents">
+	<cffunction name="$getFileContents" access="public" output="false" returntype="string" mixin="application">
 		<cfargument name="fileNames" type="string" required="true" />
 		<cfargument name="relativeFolderPath" type="string" required="true" />
-		<cfargument name="fileExtension" type="string" required="true" />
-		<cfargument name="delimiter" type="string" required="true" />
+		<cfargument name="extension" type="string" required="true" />
+		<cfargument name="delimiter" type="string" required="false" default="," />
 		<cfscript>
 			var loc = {};
 			loc.iEnd = ListLen(arguments.fileNames, arguments.delimiter);
@@ -205,33 +220,23 @@
 			{
 				// get each of our files and concantenate them together
 				loc.item = ListGetAt(arguments.fileNames, loc.i, arguments.delimiter);
-				loc.itemRelativePath = arguments.relativeFolderPath & loc.item & arguments.fileExtension;
+				loc.itemRelativePath = arguments.relativeFolderPath & loc.item;
+				
+				if (Reverse(arguments.extension) neq Left(Reverse(loc.itemRelativePath), Len(arguments.extension)))
+					loc.itemRelativePath = loc.itemRelativePath & arguments.extension;
+				
 				loc.itemFilePath = ExpandPath(loc.itemRelativePath);
 				
 				if (!FileExists(loc.itemFilePath))
 				{
-					$throw(type="Wheels.StyleSheetNotFound", message="Could not find the file '#loc.itemRelativePath#'.", extendedInfo="Create a file named '#loc.item##arguments.fileExtension#' in the '#arguments.relativeFolderPath#' directory (create the directory as well if it doesn't already exist).");
+					$throw(type="Wheels.AssetFileNotFound", message="Could not find the file '#loc.itemRelativePath#'.", extendedInfo="Create a file named '#loc.item##arguments.extension#' in the '#arguments.relativeFolderPath#' directory (create the directory as well if it doesn't already exist).");
 				}
 				
-				loc.fileContents = loc.fileContents & $readFile(loc.itemFilePath);
+				loc.fileContents = loc.fileContents & $file(action="read", file=loc.itemFilePath);
 			}
 			
 			return loc.fileContents;
 		</cfscript>
-	</cffunction>
-	
-	<cffunction name="$readFile">
-		<cfargument name="absolutePath" type="string" required="true" />
-		<cfset var loc = {} />
-		<cffile action="read" file="#arguments.absolutePath#" variable="loc.returnValue" />
-		<cfreturn loc.returnValue />
-	</cffunction>
-	
-	<cffunction name="$writeFile">
-		<cfargument name="absolutePath" type="string" required="true" />
-		<cfargument name="fileContents" type="string" required="true" />
-		<cfset var loc = {} />
-		<cffile action="write" file="#absolutePath#" output="#arguments.fileContents#" mode="644" />
 	</cffunction>
 	
 </cfcomponent>
