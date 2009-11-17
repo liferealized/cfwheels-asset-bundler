@@ -1,7 +1,12 @@
 <cfcomponent output="false">
 
 	<cffunction name="init" access="public" output="false">
-		<cfset this.version = "1.0">
+		<cfscript>
+			if (StructKeyExists(application, "assetBundler"))
+				StructDelete(application, "assetBundler");
+			
+			this.version = "1.0";	
+		</cfscript>
 		<cfreturn this />
 	</cffunction>
 	
