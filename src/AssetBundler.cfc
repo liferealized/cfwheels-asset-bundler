@@ -5,12 +5,12 @@
 			if (StructKeyExists(application, "assetBundler"))
 				StructDelete(application, "assetBundler");
 			
-			this.version = "1.0";	
+			this.version = "1.0,1.1";	
 		</cfscript>
 		<cfreturn this />
 	</cffunction>
 	
-	<cffunction name="generateBundle" access="public" returntype="void" mixin="application">
+	<cffunction name="generateBundle" access="public" output="false" returntype="void" mixin="application,controller">
 		<cfargument name="type" type="string" required="true" hint="Can be either `js` or `css`" />
 		<cfargument name="sources" type="string" required="false" default="" />
 		<cfargument name="bundle" type="string" required="false" default="" />
@@ -42,8 +42,8 @@
 			loc.bundleInfo.sources = arguments.sources;
 				
 			// if we are not in testing or production, do nothing
-			if (not ListFindNoCase("production,testing", application.wheels.environment)) {
-			
+			if (not ListFindNoCase("production,testing", application.wheels.environment))
+			{
 				application.assetBundler[arguments.type][arguments.bundle] = StructCopy(loc.bundleInfo);
 				return;
 			}
@@ -67,13 +67,14 @@
 			
 			application.assetBundler[arguments.type][arguments.bundle] = StructCopy(loc.bundleInfo);
 			
-			if (Find("/", arguments.bundle)) {
+			if (Find("/", arguments.bundle))
+			{
 				loc.directory = ListDeleteAt(arguments.bundle, ListLen(arguments.bundle, "/"), "/");
 				if (not DirectoryExists(ExpandPath(loc.relativeFolderPath & loc.directory & "/")))
 					$directory(action="create", directory=ExpandPath(loc.relativeFolderPath & loc.directory & "/"));
 			}
 			
-			$file(action="write", file=loc.bundleFilePath, output=loc.bundleContents, mode="644");
+			$file(action="write", file=loc.bundleFilePath, output=loc.bundleContents, mode="775");
 		</cfscript>
 		<cfreturn />
 	</cffunction>
@@ -86,8 +87,8 @@
 		<cfscript>
 			var originalStyleSheetLinkTag = core.styleSheetLinkTag;
 			
-			if (not ListFindNoCase("production,testing", application.wheels.environment)) {
-			
+			if (not ListFindNoCase("production,testing", application.wheels.environment))
+			{
 				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="css"))
 					arguments.sources = application.assetBundler.css[arguments.bundle].sources;
 				
@@ -95,8 +96,8 @@
 				return originalStyleSheetLinkTag(argumentCollection=arguments);
 			}
 			
-			if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type="css")) {
-			
+			if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type="css"))
+			{
 				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="css"))
 					arguments.sources = application.assetBundler.css[arguments.bundle].sources;
 					
@@ -120,20 +121,18 @@
 		<cfscript>
 			var originalJavaScriptIncludeTag = core.javaScriptIncludeTag;
 			
-			if (not ListFindNoCase("production,testing", application.wheels.environment)) {
-			
+			if (not ListFindNoCase("production,testing", application.wheels.environment))
+			{
 				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="js"))
 					arguments.sources = application.assetBundler.js[arguments.bundle].sources;
-				
 				StructDelete(arguments, "bundle");
 				return originalJavaScriptIncludeTag(argumentCollection=arguments);
 			}
 			
-			if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type="js")) {
-			
+			if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type="js"))
+			{
 				if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type="js"))
 					arguments.sources = application.assetBundler.js[arguments.bundle].sources;
-				
 				StructDelete(arguments, "bundle");
 				return originalJavaScriptIncludeTag(argumentCollection=arguments);
 			}
@@ -174,8 +173,8 @@
 			
 			loc.javaLoader = $createJavaLoader();
 			
-			loc.stringReader = createObject("java","java.io.StringReader").init(arguments.fileContents);
-			loc.stringWriter = createObject("java","java.io.StringWriter").init();
+			loc.stringReader = createObject("java", "java.io.StringReader").init(arguments.fileContents);
+			loc.stringWriter = createObject("java", "java.io.StringWriter").init();
 			
 			if (LCase(arguments.type) == "css")
 			{
@@ -203,8 +202,8 @@
 
 	<cffunction name="$createJavaLoader" access="public" output="false" returntype="any" mixin="application">
 		<cfscript>
-			if (StructKeyExists(request, "javaLoader"))
-				return request.javaLoader;
+			if (StructKeyExists(server, "javaLoader"))
+				return server.javaLoader;
 			
 			loc.relativePluginPath = application.wheels.webPath & application.wheels.pluginPath & "/assetbundler/";
 			loc.classPath = Replace(Replace(loc.relativePluginPath, "/", ".", "all") & "javaloader", ".", "", "one");
@@ -213,10 +212,9 @@
 			loc.paths[1] = ExpandPath(loc.relativePluginPath & "lib/yuicompressor-2.4.2.jar");
 			
 			// set the javaLoader to the request in case we use it again
-			request.javaLoader = $createObjectFromRoot(path=loc.classPath, fileName="JavaLoader", method="init", loadPaths=loc.paths, loadColdFusionClassPath=false);
-
-			return request.javaLoader;
+			server.javaLoader = $createObjectFromRoot(path=loc.classPath, fileName="JavaLoader", method="init", loadPaths=loc.paths, loadColdFusionClassPath=false);
 		</cfscript>
+		<cfreturn server.javaLoader />
 	</cffunction>
 	
 	<cffunction name="$getFileContents" access="public" output="false" returntype="string" mixin="application">

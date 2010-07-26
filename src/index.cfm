@@ -24,7 +24,7 @@
 	The method should only be used here to ensure that your bundles are created before the application starts serving requests. 
 <p>
 </p>	
-	The source/sources argument you specify for this method will be saved by the asset bundler. In your layout file, you should only need to call <code>javaScriptIncludeTag()</code> or <code>styleSheetLinkTag()</code>
+	The source/sources argument you specify for this method will be saved by the asset bundler. In your layout file, you will only need to call <code>javaScriptIncludeTag()</code> or <code>styleSheetLinkTag()</code>
 	with the proper bundle name and the asset bundler will decide what link or script tags to produce based on your environment settings. An example is below.
 </p>
 
@@ -39,7 +39,7 @@
 </pre>
 <p>
 	When in the design, development and maintenance the code about will output <code>&lt;link /&gt;</code> tags for each source listed. In the testing and production evnironments
-	the same code will produce one <code>&lt;link /&gt;</code> tag pointing to /sytlesheets/bundles/core.css.
+	the same code will produce one <code>&lt;link /&gt;</code> tag pointing to /sytlesheets/bundles/core.css (per the example above).
 </p>
 
 <h2>Overridden Methods</h2>
@@ -99,7 +99,7 @@
 <h2>Road Map</h2>
 <p>I would like to add the following features to the plugin to make it to a 1.0 release.</p>
 <ul>
-	<li>Testing and bug fixes.</li>
+	<li>Looks like we are feature complete!</li>
 </ul>
 
 <h2>Uninstallation</h2>
