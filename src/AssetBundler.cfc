@@ -30,6 +30,8 @@
 			
 			if (StructKeyExists(arguments, "source"))
 				arguments.sources = arguments.source;
+				
+			arguments.sources = $listClean(arguments.sources);
 			
 			// create our application scope structs if they do not exist
 			if (not StructKeyExists(application, "assetBundler"))
