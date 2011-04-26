@@ -76,7 +76,7 @@
 					$directory(action="create", directory=ExpandPath(loc.relativeFolderPath & loc.directory & "/"));
 			}
 			
-			$file(action="write", file=loc.bundleFilePath, output=loc.bundleContents, mode="775");
+			$file(action="write", file=loc.bundleFilePath, output=loc.bundleContents, mode="644");
 		</cfscript>
 		<cfreturn />
 	</cffunction>
@@ -233,7 +233,7 @@
 			{
 				// get each of our files and concantenate them together
 				loc.item = ListGetAt(arguments.fileNames, loc.i, arguments.delimiter);
-				loc.itemRelativePath = arguments.relativeFolderPath & loc.item;
+				loc.itemRelativePath = arguments.relativeFolderPath & Trim(loc.item);
 				
 				if (Reverse(arguments.extension) neq Left(Reverse(loc.itemRelativePath), Len(arguments.extension)))
 					loc.itemRelativePath = loc.itemRelativePath & arguments.extension;
