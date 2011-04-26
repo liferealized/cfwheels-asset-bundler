@@ -5,7 +5,7 @@
 			if (StructKeyExists(application, "assetBundler"))
 				StructDelete(application, "assetBundler");
 			
-			this.version = "1.0,1.1";	
+			this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3";	
 		</cfscript>
 		<cfreturn this />
 	</cffunction>
