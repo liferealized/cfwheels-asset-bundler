@@ -2,16 +2,14 @@
 
 	<cffunction name="init" access="public" output="false">
 		<cfscript>
-			if (StructKeyExists(application, "assetBundler"))
-				StructDelete(application, "assetBundler");
-			
-			this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3";	
+			StructDelete(application, "assetBundler", false);
+			this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3,1.1.4,1.1.5,1.1.6,1.1.7";	
 		</cfscript>
 		<cfreturn this />
 	</cffunction>
 	
 	<cffunction name="generateBundle" access="public" output="false" returntype="void" mixin="application,controller">
-		<cfargument name="type" type="string" required="true" hint="Can be either `js` or `css`" />
+		<cfargument name="type" type="string" required="true" hint="Can be either `js`, `css` or `less`" />
 		<cfargument name="sources" type="string" required="false" default="" />
 		<cfargument name="bundle" type="string" required="false" default="" />
 		<cfargument name="compress" type="boolean" required="false" default="false" />
@@ -34,15 +32,35 @@
 			arguments.sources = $listClean(arguments.sources);
 			
 			// create our application scope structs if they do not exist
-			if (not StructKeyExists(application, "assetBundler"))
+			if (!StructKeyExists(application, "assetBundler"))
 				application.assetBundler = {};
+				
+			switch (arguments.type)
+			{
+				case "js":
+				{
+					loc.relativeFolderPath = application.wheels.webPath & application.wheels.javascriptPath & "/";
+					break;
+				}
+				
+				case "less":
+				{
+					if (application.wheels.showErrorInformation && !StructKeyExists(variables, "generateLessCssFiles"))
+						$throw(type="Wheels", message="Plugin Missing", extendedInfo="You must include the less css plugin to bundle less files.");
+					
+					if (ListFindNoCase("production,testing", application.wheels.environment))
+					{
+						generateLessCssFiles(sources=arguments.sources);
+						arguments.sources = mapLessCssFiles(sources=arguments.sources);
+						arguments.type = "css";
+						loc.extension = "." & arguments.type;
+					}
+					break;
+				}
+			}
 			
 			if (not StructKeyExists(application.assetBundler, arguments.type))
 				application.assetBundler[arguments.type] = {};
-			
-			// make sure we have the right root path
-			if (arguments.type eq "js")
-				loc.relativeFolderPath = application.wheels.webPath & application.wheels.javascriptPath & "/";
 			
 			// process our sources to see if we have any directories to expand
 			for (loc.item in ListToArray(arguments.sources))
@@ -112,7 +130,7 @@
 	<cffunction name="$callOriginalIncludeMethod" access="public" output="false" returntype="string" mixin="controller">
 		<cfargument name="$includeMethod" type="string" required="true" />
 		<cfargument name="$fileType" type="string" required="true" />
-		<cfargument name="sources" type="string" required="true" />
+		<cfargument name="sources" type="string" required="false" default="" />
 		<cfargument name="bundle" type="string" required="true" />
 		<cfargument name="type" type="string" required="true" />
 		<cfscript>
@@ -201,8 +219,13 @@
 
 	<cffunction name="$createJavaLoader" access="public" output="false" returntype="any" mixin="application">
 		<cfscript>
-			if (StructKeyExists(server, "javaLoader"))
-				return server.javaLoader;
+			var loc = {};
+			
+			if (!StructKeyExists(server, "javaloader") || !IsStruct(server.javaloader))
+				server.javaloader = {};
+			
+			if (StructKeyExists(server.javaloader, "assetbundler"))
+				return server.javaloader.assetbundler;
 			
 			loc.relativePluginPath = application.wheels.webPath & application.wheels.pluginPath & "/assetbundler/";
 			loc.classPath = Replace(Replace(loc.relativePluginPath, "/", ".", "all") & "javaloader", ".", "", "one");
@@ -211,9 +234,9 @@
 			loc.paths[1] = ExpandPath(loc.relativePluginPath & "lib/yuicompressor-2.4.2.jar");
 			
 			// set the javaLoader to the request in case we use it again
-			server.javaLoader = $createObjectFromRoot(path=loc.classPath, fileName="JavaLoader", method="init", loadPaths=loc.paths, loadColdFusionClassPath=false);
+			server.javaloader.assetbundler = $createObjectFromRoot(path=loc.classPath, fileName="JavaLoader", method="init", loadPaths=loc.paths, loadColdFusionClassPath=false);
 		</cfscript>
-		<cfreturn server.javaLoader />
+		<cfreturn server.javaloader.assetbundler />
 	</cffunction>
 	
 	<cffunction name="$getFileContents" access="public" output="false" returntype="string" mixin="application">
