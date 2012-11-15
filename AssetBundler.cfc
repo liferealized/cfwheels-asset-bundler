@@ -231,7 +231,7 @@
 			loc.classPath = Replace(Replace(loc.relativePluginPath, "/", ".", "all") & "javaloader", ".", "", "one");
 			
 			loc.paths = ArrayNew(1);
-			loc.paths[1] = ExpandPath(loc.relativePluginPath & "lib/yuicompressor-2.4.2.jar");
+			loc.paths[1] = ExpandPath(loc.relativePluginPath & "lib/yuicompressor-2.4.7.jar");
 			
 			// set the javaLoader to the request in case we use it again
 			server.javaloader.assetbundler = $createObjectFromRoot(path=loc.classPath, fileName="JavaLoader", method="init", loadPaths=loc.paths, loadColdFusionClassPath=false);
