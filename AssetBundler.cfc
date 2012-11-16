@@ -63,14 +63,16 @@
 				application.assetBundler[arguments.type] = {};
 			
 			// process our sources to see if we have any directories to expand
-			for (loc.item in ListToArray(arguments.sources))
+			loc.array=ListToArray(arguments.sources);
+			
+			for (i=1; i LTE ArrayLen(loc.array); i=i+1)
 			{
-				if (REFind("\*$", loc.item))
+				if (REFind("\*$", loc.array[i]))
 				{
 					// we found a star at the end of the path name so let's get all of 
 					// the files under the designated folder for our extension type
 					loc.folderFiles = $getAllFilesInDirectory(directoryPath=REReplace(loc.item, "\*$", "", "one"), argumentCollection=loc);
-					arguments.sources = ListSetAt(arguments.sources, ListFind(arguments.sources, loc.item), loc.folderFiles);
+					arguments.sources = ListSetAt(arguments.sources, ListFind(arguments.sources, loc.array[i]), loc.folderFiles);
 				}
 			}
 				
@@ -247,9 +249,11 @@
 		<cfscript>
 			var loc = { fileContents = "" };
 			
-			for (loc.item in ListToArray(arguments.fileNames, arguments.delimiter))
+			loc.array=ListToArray(arguments.fileNames, arguments.delimiter);
+			
+			for (i=1; i LTE ArrayLen(loc.array); i=i+1)
 			{
-				loc.itemRelativePath = arguments.relativeFolderPath & Trim(loc.item);
+				loc.itemRelativePath = arguments.relativeFolderPath & Trim(loc.array[i]);
 			
 				if (Reverse(arguments.extension) neq Left(Reverse(loc.itemRelativePath), Len(arguments.extension)))
 					loc.itemRelativePath = loc.itemRelativePath & arguments.extension;
@@ -270,8 +274,7 @@
 			
 			return loc.fileContents;
 		</cfscript>
-	</cffunction>
-	
+	</cffunction>	
 	<cffunction name="$getAllFilesInDirectory" access="public" output="false" returntype="string" mixin="application">
 		<cfargument name="directoryPath" type="string" required="true" />
 		<cfargument name="relativeFolderPath" type="string" required="true" />
