@@ -71,7 +71,7 @@
 				{
 					// we found a star at the end of the path name so let's get all of 
 					// the files under the designated folder for our extension type
-					loc.folderFiles = $getAllFilesInDirectory(directoryPath=REReplace(loc.item, "\*$", "", "one"), argumentCollection=loc);
+					loc.folderFiles = $getAllFilesInDirectory(directoryPath=REReplace(loc.array[i], "\*$", "", "one"), argumentCollection=loc);
 					arguments.sources = ListSetAt(arguments.sources, ListFind(arguments.sources, loc.array[i]), loc.folderFiles);
 				}
 			}
@@ -261,7 +261,7 @@
 				loc.itemFilePath = ExpandPath(loc.itemRelativePath);
 				
 				if (!FileExists(loc.itemFilePath))
-					$throw(type="Wheels.AssetFileNotFound", message="Could not find the file '#loc.itemRelativePath#'.", extendedInfo="Create a file named '#loc.item##arguments.extension#' in the '#arguments.relativeFolderPath#' directory (create the directory as well if it doesn't already exist).");
+					$throw(type="Wheels.AssetFileNotFound", message="Could not find the file '#loc.itemRelativePath#'.", extendedInfo="Create a file named '#loc.array[i]##arguments.extension#' in the '#arguments.relativeFolderPath#' directory (create the directory as well if it doesn't already exist).");
 				
 				// get each of our files and concantenate them together
 				loc.file = $file(action="read", file=loc.itemFilePath);
