@@ -83,8 +83,6 @@
 				application.assetBundler[arguments.type][arguments.bundle] = StructCopy(loc.bundleInfo);
 				return;
 			}
-				
-			loc.bundleFilePath = ExpandPath(loc.relativeFolderPath & arguments.bundle & loc.extension);
 			
 			// conbine all of the files listed as one file
 			loc.bundleContents = $getFileContents(arguments.sources, loc.relativeFolderPath, loc.extension);
@@ -94,7 +92,7 @@
 				loc.bundleContents = $compressContents(loc.bundleContents, arguments.type);
 			
 			// store info about our bundle in the application scope
-			loc.bundleInfo.md5hash = Hash(loc.bundleContents);
+			loc.bundleInfo.md5hash = lCase(Hash(loc.bundleContents));
 			loc.bundleInfo.createdAt = Now();
 			
 			application.assetBundler[arguments.type][arguments.bundle] = StructCopy(loc.bundleInfo);
@@ -105,6 +103,10 @@
 				if (not DirectoryExists(ExpandPath(loc.relativeFolderPath & loc.directory & "/")))
 					$directory(action="create", directory=ExpandPath(loc.relativeFolderPath & loc.directory & "/"));
 			}
+			
+			// build the bundle file path with the md5 hash of the file's contents
+			// this method ensures that browsers do not cache old versions of the .js or .css
+			loc.bundleFilePath = ExpandPath(loc.relativeFolderPath & arguments.bundle & "-" & loc.bundleInfo.md5hash & loc.extension);
 			
 			$file(action="write", file=loc.bundleFilePath, output=loc.bundleContents, mode="644");
 		</cfscript>
@@ -152,7 +154,8 @@
 				return originalIncludeMethod(argumentCollection=arguments);
 			}
 			
-			arguments.sources = arguments.bundle;
+			// we are including a bundled item so make sure we have the file path correct
+			arguments.sources = arguments.bundle & "-" & application.assetBundler[arguments.$fileType][arguments.bundle].md5Hash;
 			
 			StructDelete(arguments, "$includeMethod");
 			StructDelete(arguments, "$fileType");
@@ -261,10 +264,6 @@
 				
 				// get each of our files and concantenate them together
 				loc.file = $file(action="read", file=loc.itemFilePath);
-				
-				if (arguments.extension == ".css")
-					loc.file = $appendQueryStringToUrls(loc.file);
-				
 				loc.fileContents = loc.fileContents & loc.file;
 			}
 			
@@ -290,42 +289,6 @@
 			}
 		</cfscript>
 		<cfreturn loc.fileNames />
-	</cffunction>
-	
-	<cffunction name="$appendQueryStringToUrls" access="public" output="false" returntype="string" mixin="application">
-		<cfargument name="fileContents" type="string" required="false" default="" />
-		<cfscript>
-			var loc = {};
-			loc.used = {};
-			loc.matches = REMatchNoCase("url\([^\)]*\)", arguments.fileContents);
-			
-			for (loc.i = 1; loc.i lte ArrayLen(loc.matches); loc.i++)
-			{
-				if (!StructKeyExists(loc.used, loc.matches[loc.i]))
-				{
-					loc.replaceWith = ReplaceList(loc.matches[loc.i], "',""", "");
-					loc.replaceWith = REReplace(loc.replaceWith, "\)$", $appendQueryString() & ")", "one");
-					arguments.fileContents = ReplaceNoCase(arguments.fileContents, loc.matches[loc.i], loc.replaceWith, "all");
-					loc.used[loc.matches[loc.i]] = "";
-				}
-			}
-		</cfscript>
-		<cfreturn arguments.fileContents />
-	</cffunction>
-
-	<cffunction name="$appendQueryString" returntype="string" access="public" output="false" mixin="application">
-		<cfscript>
-			var returnValue = "";
-			// if assetQueryString is a boolean value, it means we just reloaded, so create a new query string based off of now
-			// the only problem with this is if the app doesn't get used a lot and the application is left alone for a period longer than the application scope is allowed to exist
-			if (IsBoolean(application.wheels.assetQueryString) and YesNoFormat(application.wheels.assetQueryString) == "no")
-				return returnValue;
-	
-			if (!IsNumeric(application.wheels.assetQueryString) and IsBoolean(application.wheels.assetQueryString))
-				application.wheels.assetQueryString = Hash(DateFormat(Now(), "yyyymmdd") & TimeFormat(Now(), "HHmmss"));
-			returnValue = returnValue & "?" & application.wheels.assetQueryString;
-		</cfscript>
-		<cfreturn returnValue />
 	</cffunction>
 	
 </cfcomponent>
