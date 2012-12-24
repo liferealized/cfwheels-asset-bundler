@@ -3,7 +3,7 @@
 	<cffunction name="init" access="public" output="false">
 		<cfscript>
 			StructDelete(application, "assetBundler", false);
-			this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3,1.1.4,1.1.5,1.1.6,1.1.7";	
+			this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3,1.1.4,1.1.5,1.1.6,1.1.7,1.1.8";	
 		</cfscript>
 		<cfreturn this />
 	</cffunction>
