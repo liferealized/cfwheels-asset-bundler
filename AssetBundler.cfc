@@ -3,7 +3,8 @@
 	<cffunction name="init" access="public" output="false">
 		<cfscript>
 			StructDelete(application, "assetBundler", false);
-			this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3,1.1.4,1.1.5,1.1.6,1.1.7,1.1.8";	
+			this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3,1.1.4,1.1.5,1.1.6,1.1.7,1.1.8";
+			this.environments = "test, production";	
 		</cfscript>
 		<cfreturn this />
 	</cffunction>
@@ -48,7 +49,7 @@
 					if (application.wheels.showErrorInformation && !StructKeyExists(variables, "generateLessCssFiles"))
 						$throw(type="Wheels", message="Plugin Missing", extendedInfo="You must include the less css plugin to bundle less files.");
 					
-					if (ListFindNoCase("production,testing", application.wheels.environment))
+					if (ListFindNoCase(application.wheels.plugins.assetBundler.environments, application.wheels.environment))
 					{
 						generateLessCssFiles(sources=arguments.sources);
 						arguments.sources = mapLessCssFiles(sources=arguments.sources);
