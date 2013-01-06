@@ -37,6 +37,19 @@
 
 #styleSheetLinkTag(bundle="bundles/core")#
 </pre>
+
+<h2>Configure environments</h2>
+<p>By default the plugin will attempt to generate and use the bundles in test and production ens.
+The environments where the plugin executes can be configured onApplicationStart just before generating the bundles</p>
+
+<pre>
+&lt;cfset application.wheels.plugins.assetBundler.environments = "development, test, production" /&gt;
+
+&lt;cfset generateBundle.....
+</pre>
+
+
+
 <p>
 	When in the design, development and maintenance the code about will output <code>&lt;link /&gt;</code> tags for each source listed. In the testing and production evnironments
 	the same code will produce one <code>&lt;link /&gt;</code> tag pointing to /sytlesheets/bundles/core.css (per the example above).
