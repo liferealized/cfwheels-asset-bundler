@@ -1,0 +1,15 @@
+<project name="assetbundler" basedir="." default="main">
+
+    <property file="project.properties"/>
+
+    <target name="main">
+
+        <zip destfile="${basedir}/build/AssetBundler-${version}.zip"
+             basedir="."
+             includes="javaloader/**, lib/**, *.cfc, *.cfm, *txt"
+                />
+
+    </target>
+
+</project>
+
