@@ -3,8 +3,8 @@
     <cffunction name="init" access="public" output="false">
         <cfscript>
             StructDelete(application, "assetBundler", false);
-            this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3,1.1.4,1.1.5,1.1.6,1.1.7,1.1.8";
-            this.environments = "test, production";
+            this.version = "1.0,1.1,1.1.1,1.1.2,1.1.3,1.1.4,1.1.5,1.1.6,1.1.7,1.1.8,1.3,1.3.1,1.3.2,1.3.3,1.3.4,1.4.0,1.4.1";
+            this.environments = "test,production";
         </cfscript>
         <cfreturn this />
     </cffunction>
@@ -81,7 +81,7 @@
             loc.bundleInfo.sources = arguments.sources;
 
             // if we are not in testing or production, do nothing
-            if (not ListFindNoCase(application.wheels.plugins.assetBundler.environments, application.wheels.environment))
+            if (!ListFindNoCase(application.wheels.plugins.assetBundler.environments, application.wheels.environment))
             {
                 application.assetBundler[arguments.type][arguments.bundle] = StructCopy(loc.bundleInfo);
                 return;
@@ -111,7 +111,8 @@
             // this method ensures that browsers do not cache old versions of the .js or .css
             loc.bundleFilePath = ExpandPath(loc.relativeFolderPath & arguments.bundle & "-" & loc.bundleInfo.md5hash & loc.extension);
 
-            $file(action="write", file=loc.bundleFilePath, output=loc.bundleContents, mode="644");
+            FileWrite(loc.bundleFilePath, loc.bundleContents);
+            FileSetAccessMode(loc.bundleFilePath, "644");
         </cfscript>
         <cfreturn />
     </cffunction>
@@ -170,7 +171,7 @@
 
     <cffunction name="$bundleExists" output="false" returntype="boolean" access="public" mixin="controller">
         <cfargument name="bundle" required="true" type="string" />
-        <cfargument name="type" required="true" type="string" hint="can be `js` or 	`css`" />
+        <cfargument name="type" required="true" type="string" hint="can be `js` or  `css`" />
         <cfscript>
             var returnValue = false;
 
@@ -253,11 +254,11 @@
         <cfscript>
             var loc = { fileContents = "" };
 
-            loc.array=ListToArray(arguments.fileNames, arguments.delimiter);
+            loc.array = ListToArray(arguments.fileNames, arguments.delimiter);
 
-            for (i=1; i LTE ArrayLen(loc.array); i=i+1)
+            for (loc.i = 1; loc.i <= ArrayLen(loc.array); loc.i = loc.i + 1)
             {
-                loc.itemRelativePath = arguments.relativeFolderPath & Trim(loc.array[i]);
+                loc.itemRelativePath = arguments.relativeFolderPath & Trim(loc.array[loc.i]);
 
                 if (Reverse(arguments.extension) neq Left(Reverse(loc.itemRelativePath), Len(arguments.extension)))
                     loc.itemRelativePath = loc.itemRelativePath & arguments.extension;
@@ -265,16 +266,17 @@
                 loc.itemFilePath = ExpandPath(loc.itemRelativePath);
 
                 if (!FileExists(loc.itemFilePath))
-                    $throw(type="Wheels.AssetFileNotFound", message="Could not find the file '#loc.itemRelativePath#'.", extendedInfo="Create a file named '#loc.array[i]##arguments.extension#' in the '#arguments.relativeFolderPath#' directory (create the directory as well if it doesn't already exist).");
+                    $throw(type="Wheels.AssetFileNotFound", message="Could not find the file '#loc.itemRelativePath#'.", extendedInfo="Create a file named '#loc.array[loc.i]##arguments.extension#' in the '#arguments.relativeFolderPath#' directory (create the directory as well if it doesn't already exist).");
 
                 // get each of our files and concantenate them together
-                loc.file = $file(action="read", file=loc.itemFilePath);
+                loc.file = FileRead(loc.itemFilePath);
                 loc.fileContents = loc.fileContents & loc.file;
             }
 
             return loc.fileContents;
         </cfscript>
     </cffunction>
+
     <cffunction name="$getAllFilesInDirectory" access="public" output="false" returntype="string" mixin="application">
         <cfargument name="directoryPath" type="string" required="true" />
         <cfargument name="relativeFolderPath" type="string" required="true" />
