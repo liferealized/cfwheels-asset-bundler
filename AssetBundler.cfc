@@ -286,7 +286,7 @@
             var loc = { fileNames = "" };
 
             loc.itemFolderPath = ExpandPath(arguments.relativeFolderPath & Trim(arguments.directoryPath));
-            loc.filesQuery = $directory(action="list", directory=loc.itemFolderPath, type="file", filter="*#arguments.extension#", recurse=true);
+            loc.filesQuery = $directory(action="list", directory=loc.itemFolderPath, sort="directory ASC", type="file", filter="*#arguments.extension#", recurse=true);
 
             for (loc.i = 1; loc.i lte loc.filesQuery.Recordcount; loc.i++)
             {
