@@ -51,10 +51,13 @@
 
                     if (ListFindNoCase(application.wheels.plugins.assetBundler.environments, application.wheels.environment))
                     {
-                        generateLessCssFiles(sources=arguments.sources);
+                        generateLessCssFiles(sources=arguments.sources, compress=arguments.compress);
                         arguments.sources = mapLessCssFiles(sources=arguments.sources);
                         arguments.type = "css";
                         loc.extension = "." & arguments.type;
+
+                        // set compress argument to false since the less compiler received the directive
+                        arguments.compress = false;
                     }
                     break;
                 }
