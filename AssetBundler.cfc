@@ -222,7 +222,7 @@
                 // now set the level of optimization
                 loc.javaLoader
                     .create("com.google.javascript.jscomp.CompilationLevel")
-                    .ADVANCED_OPTIMIZATIONS
+                    .SIMPLE_OPTIMIZATIONS
                     .setOptionsForCompilationLevel(loc.options);
 
                 // we need to set our language mode in the options
