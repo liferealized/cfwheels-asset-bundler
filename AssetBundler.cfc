@@ -200,28 +200,66 @@
 
             loc.javaLoader = $createJavaLoader();
 
-            loc.stringReader = createObject("java", "java.io.StringReader").init(arguments.fileContents);
-            loc.stringWriter = createObject("java", "java.io.StringWriter").init();
-
             if (LCase(arguments.type) == "css")
             {
+                loc.stringReader = createObject("java", "java.io.StringReader").init(arguments.fileContents);
+                loc.stringWriter = createObject("java", "java.io.StringWriter").init();
                 loc.yuiCompressor = loc.javaLoader.create("com.yahoo.platform.yui.compressor.CssCompressor").init(loc.stringReader);
                 loc.yuiCompressor.compress(loc.stringWriter, JavaCast("int", -1));
+
+                loc.stringReader.close();
+                loc.compressedContents = loc.stringWriter.toString();
+                loc.stringWriter.close();
             }
             else if (LCase(arguments.type) == "js")
             {
-                loc.errorReporter = loc.javaLoader.create("org.mozilla.javascript.tools.ToolErrorReporter").init(JavaCast("boolean", false));
-                loc.yuiCompressor = loc.javaLoader.create("com.yahoo.platform.yui.compressor.JavaScriptCompressor").init(loc.stringReader, loc.errorReporter);
-                loc.yuiCompressor.compress(loc.stringWriter, JavaCast("int", -1), JavaCast("boolean", true), JavaCast("boolean", false), JavaCast("boolean", false), JavaCast("boolean", false));
+
+                // closure compiler needs an options object
+                loc.options = loc.javaLoader
+                    .create("com.google.javascript.jscomp.CompilerOptions")
+                    .init();
+
+                // now set the level of optimization
+                loc.javaLoader
+                    .create("com.google.javascript.jscomp.CompilationLevel")
+                    .ADVANCED_OPTIMIZATIONS
+                    .setOptionsForCompilationLevel(loc.options);
+
+                // we need to set our language mode in the options
+                loc.langMode = loc.javaLoader
+                    .create("com.google.javascript.jscomp.CompilerOptions$LanguageMode")
+                    .fromString("ECMASCRIPT5");
+
+                loc.options.setLanguageIn(loc.langMode);
+
+                // we need a source file for input and output
+                loc.input = loc.javaLoader
+                    .create("com.google.javascript.jscomp.SourceFile")
+                    .fromCode("input.js", arguments.fileContents);
+                loc.output = loc.javaLoader
+                    .create("com.google.javascript.jscomp.SourceFile")
+                    .fromCode("output.js", "");
+
+                // create our compiler
+                loc.compiler = loc.javaLoader
+                    .create("com.google.javascript.jscomp.Compiler")
+                    .init();
+
+                loc.result = loc.compiler.compile(
+                        loc.output
+                    , loc.input
+                    , loc.options
+                );
+
+                if (!loc.result.success)
+                    $dump(loc.result.errors);
+
+                loc.compressedContents = loc.compiler.toSource();
             }
             else
             {
                 return arguments.fileContents;
             }
-
-            loc.stringReader.close();
-            loc.compressedContents = loc.stringWriter.toString();
-            loc.stringWriter.close();
 
             return loc.compressedContents;
         </cfscript>
@@ -242,6 +280,7 @@
 
             loc.paths = ArrayNew(1);
             loc.paths[1] = ExpandPath(loc.relativePluginPath & "lib/yuicompressor-2.4.8.jar");
+            loc.paths[2] = ExpandPath(loc.relativePluginPath & "lib/closure-compiler-v20161024.jar");
 
             // set the javaLoader to the request in case we use it again
             server.javaloader.assetbundler = $createObjectFromRoot(path=loc.classPath, fileName="JavaLoader", method="init", loadPaths=loc.paths, loadColdFusionClassPath=false);
