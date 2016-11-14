@@ -202,14 +202,21 @@
 
             if (LCase(arguments.type) == "css")
             {
-                loc.stringReader = createObject("java", "java.io.StringReader").init(arguments.fileContents);
-                loc.stringWriter = createObject("java", "java.io.StringWriter").init();
-                loc.yuiCompressor = loc.javaLoader.create("com.yahoo.platform.yui.compressor.CssCompressor").init(loc.stringReader);
-                loc.yuiCompressor.compress(loc.stringWriter, JavaCast("int", -1));
+                loc.reader = createObject("java", "java.io.StringReader")
+                    .init(arguments.fileContents);
+                loc.output = createObject("java", "java.io.ByteArrayOutputStream")
+                    .init();
 
-                loc.stringReader.close();
-                loc.compressedContents = loc.stringWriter.toString();
-                loc.stringWriter.close();
+                // instantial the cssmin class, no need to init as methods to
+                // use are static
+                loc.cssmin = loc.javaLoader.create("CSSMin");
+
+                // format our input and get the output
+                loc.cssmin.formatFile(loc.reader, loc.output);
+
+                loc.reader.close();
+                loc.compressedContents = loc.output.toString();
+                loc.output.close();
             }
             else if (LCase(arguments.type) == "js")
             {
@@ -279,7 +286,7 @@
             loc.classPath = Replace(Replace(loc.relativePluginPath, "/", ".", "all") & "javaloader", ".", "", "one");
 
             loc.paths = ArrayNew(1);
-            loc.paths[1] = ExpandPath(loc.relativePluginPath & "lib/yuicompressor-2.4.8.jar");
+            loc.paths[1] = ExpandPath(loc.relativePluginPath & "lib/CSSMin.jar");
             loc.paths[2] = ExpandPath(loc.relativePluginPath & "lib/closure-compiler-v20161024.jar");
 
             // set the javaLoader to the request in case we use it again
