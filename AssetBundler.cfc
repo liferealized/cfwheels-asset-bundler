@@ -125,7 +125,8 @@
         <cfargument name="type" type="string" required="false" default="#application.wheels.functions.styleSheetLinkTag.type#" />
         <cfargument name="media" type="string" required="false" default="#application.wheels.functions.styleSheetLinkTag.media#" />
         <cfargument name="bundle" type="string" required="false" default="" />
-        <cfreturn $callOriginalIncludeMethod($includeMethod="styleSheetLinkTag", $fileType="css", argumentCollection=arguments) />
+        <cfset arguments = $includeMethodArguments($fileType="css", argumentCollection=arguments) />
+        <cfreturn core.styleSheetLinkTag(argumentCollection=arguments) />
     </cffunction>
 
 
@@ -133,24 +134,22 @@
         <cfargument name="sources" type="string" required="false" default="" />
         <cfargument name="type" type="string" required="false" default="#application.wheels.functions.javaScriptIncludeTag.type#" />
         <cfargument name="bundle" type="string" required="false" default="" />
-        <cfreturn $callOriginalIncludeMethod($includeMethod="javaScriptIncludeTag", $fileType="js", argumentCollection=arguments) />
+        <cfset arguments = $includeMethodArguments($fileType="js", argumentCollection=arguments) />
+        <cfreturn core.javaScriptIncludeTag(argumentCollection=arguments) />
     </cffunction>
 
-    <cffunction name="$callOriginalIncludeMethod" access="public" output="false" returntype="string" mixin="controller">
-        <cfargument name="$includeMethod" type="string" required="true" />
+    <cffunction name="$includeMethodArguments" access="public" output="false" returntype="struct" mixin="controller">
         <cfargument name="$fileType" type="string" required="true" />
         <cfargument name="sources" type="string" required="false" default="" />
         <cfargument name="bundle" type="string" required="true" />
         <cfargument name="type" type="string" required="true" />
         <cfscript>
-            var originalIncludeMethod = core[arguments.$includeMethod];
-
             if (not ListFindNoCase(application.wheels.plugins.assetBundler.environments, application.wheels.environment))
             {
                 if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type=arguments.$fileType))
                     arguments.sources = application.assetBundler[arguments.$fileType][arguments.bundle].sources;
                 StructDelete(arguments, "bundle");
-                return originalIncludeMethod(argumentCollection=arguments);
+                return arguments;
             }
 
             if (not Len(arguments.bundle) or not $bundleExists(bundle=arguments.bundle, type=arguments.$fileType))
@@ -158,18 +157,17 @@
                 if (not Len(arguments.sources) and $bundleExists(bundle=arguments.bundle, type=arguments.$fileType))
                     arguments.sources = application.assetBundler[arguments.$fileType][arguments.bundle].sources;
                 StructDelete(arguments, "bundle");
-                return originalIncludeMethod(argumentCollection=arguments);
+                return arguments;
             }
 
             // we are including a bundled item so make sure we have the file path correct
             arguments.sources = arguments.bundle & "-" & application.assetBundler[arguments.$fileType][arguments.bundle].md5Hash;
 
-            StructDelete(arguments, "$includeMethod");
             StructDelete(arguments, "$fileType");
             StructDelete(arguments, "bundle");
             StructDelete(arguments, "source");
         </cfscript>
-        <cfreturn originalIncludeMethod(argumentCollection=arguments) />
+        <cfreturn arguments />
     </cffunction>
 
     <cffunction name="$bundleExists" output="false" returntype="boolean" access="public" mixin="controller">
